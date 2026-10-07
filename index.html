@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Трекер Расходов-ПИТ</title>
+    <style>
+        /* ----- БАЗА + ТЕМЫ ----- */
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
+        :root {
+            --bg-body: #f4f6fa; --bg-card: #ffffff; --bg-input: #fafbfc; --border-color: #e2e8f0;
+            --text-primary: #1a2634; --text-secondary: #3d4a5a; --text-muted: #7e8c9e;
+            --shadow: 0 8px 30px rgba(0,0,0,0.06); --shadow-hover: 0 12px 40px rgba(0,0,0,0.08);
+            --bg-total: #f8faff; --bg-stats: #f8faff; --bg-item: #fafbfc; --bg-item-hover: #f0f6ff;
+            --bg-category: #e8edf5; --bg-progress: #e2e8f0; --toast-bg: rgba(0,0,0,0.8);
+            --toast-text: #fff; --footer-border: #e2e8f0;
+        }
+        [data-theme="dark"] {
+            --bg-body: #1a1e2c; --bg-card: #2a2f42; --bg-input: #353b52; --border-color: #3d445e;
+            --text-primary: #e8edf5; --text-secondary: #c8d0e0; --text-muted: #9aa8b8;
+            --shadow: 0 8px 30px rgba(0,0,0,0.4); --shadow-hover: 0 12px 40px rgba(0,0,0,0.5);
+            --bg-total: #32384e; --bg-stats: #32384e; --bg-item: #2f354a; --bg-item-hover: #3c4360;
+            --bg-category: #3d445e; --bg-progress: #3d445e; --toast-bg: rgba(255,255,255,0.9);
+            --toast-text: #1a1e2c; --footer-border: #3d445e;
+        }
+        body { background: var(--bg-body); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:30px 20px 10px; transition:background 0.3s; }
+        .app { max-width:1150px; width:100%; flex:1; }
+        .card { background:var(--bg-card); border-radius:24px; padding:24px 28px; box-shadow:var(--shadow); margin-bottom:24px; transition:background 0.3s, box-shadow 0.3s, transform 0.2s; }
+        .card:hover { box-shadow:var(--shadow-hover); transform:translateY(-2px); }
+        .header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px; margin-bottom:25px; }
+        .header h1 { font-size:28px; font-weight:700; color:var(--text-primary); }
+        .header h1 span { color:#4f7df3; }
+        .header-controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+        .theme-toggle { background:var(--bg-card); border:1px solid var(--border-color); border-radius:30px; padding:6px 12px; cursor:pointer; font-size:20px; transition:0.2s; color:var(--text-primary); display:flex; align-items:center; gap:6px; }
+        .theme-toggle:hover { background:var(--bg-item-hover); }
+        .total-box { background:var(--bg-total); padding:10px 24px; border-radius:16px; text-align:right; border:1px solid var(--border-color); }
+        .total-box .label { font-size:13px; color:var(--text-muted); font-weight:500; }
+        .total-box .amount { font-size:28px; font-weight:700; color:var(--text-primary); }
+        .total-box .amount.negative { color:#e74c5e; }
+        .form-row { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; }
+        .form-group { flex:1 1 150px; min-width:120px; }
+        .form-group label { display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; letter-spacing:0.3px; }
+        .form-group input,.form-group select,.form-group datalist,.form-group textarea { width:100%; padding:10px 14px; border:1.5px solid var(--border-color); border-radius:12px; font-size:14px; background:var(--bg-input); outline:none; transition:0.2s; color:var(--text-primary); font-family:inherit; }
+        .form-group textarea { resize:vertical; min-height:40px; }
+        .form-group input:focus,.form-group select:focus,.form-group textarea:focus { border-color:#4f7df3; box-shadow:0 0 0 3px rgba(79,125,243,0.15); background:var(--bg-card); }
+        .btn { padding:10px 24px; border:none; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; transition:0.2s; display:inline-flex; align-items:center; gap:6px; height:44px; background:#4f7df3; color:#fff; white-space:nowrap; }
+        .btn:hover { background:#3b66d9; box-shadow:0 4px 14px rgba(79,125,243,0.3); transform:translateY(-1px); }
+        .btn:active { transform:scale(0.97); }
+        .btn-outline { background:transparent; color:#4f7df3; border:1.5px solid #4f7df3; }
+        .btn-outline:hover { background:var(--bg-item-hover); box-shadow:none; transform:translateY(-1px); }
+        .btn-danger { background:#e74c5e; }
+        .btn-danger:hover { background:#d43a4b; box-shadow:0 4px 14px rgba(231,76,94,0.3); }
+        .btn-sm { padding:4px 12px; height:32px; font-size:12px; }
+        .btn-success { background:#2ecc71; }
+        .btn-success:hover { background:#27ae60; box-shadow:0 4px 14px rgba(46,204,113,0.3); }
+        .btn-warning { background:#f1c40f; color:#1a2634; }
+        .btn-warning:hover { background:#f39c12; box-shadow:0 4px 14px rgba(241,196,15,0.3); }
+        .budget-box { display:flex; flex-wrap:wrap; gap:15px; align-items:center; background:var(--bg-total); padding:15px 20px; border-radius:16px; border:1px solid var(--border-color); margin-top:10px; transition:background 0.3s; }
+        .budget-box label { font-weight:600; color:var(--text-secondary); font-size:14px; }
+        .budget-box input { padding:8px 14px; border:1.5px solid var(--border-color); border-radius:10px; font-size:14px; width:130px; outline:none; background:var(--bg-input); color:var(--text-primary); }
+        .budget-box input:focus { border-color:#4f7df3; }
+        .budget-box .progress-wrap { flex:1; min-width:120px; height:8px; background:var(--bg-progress); border-radius:8px; overflow:hidden; }
+        .budget-box .progress-fill { height:100%; background:#2ecc71; transition:width 0.4s ease; border-radius:8px; }
+        .budget-box .budget-info { font-weight:600; font-size:15px; color:var(--text-primary); white-space:nowrap; }
+        .filter-bar { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:16px; }
+        .filter-bar .left { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+        .filter-bar select,.filter-bar input { padding:8px 14px; border:1.5px solid var(--border-color); border-radius:10px; font-size:13px; background:var(--bg-input); outline:none; transition:0.2s; color:var(--text-primary); }
+        .filter-bar select:focus,.filter-bar input:focus { border-color:#4f7df3; }
+        .filter-bar .stats { font-size:14px; color:var(--text-muted); font-weight:500; }
+        .date-filter { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .date-filter input[type="date"] { width:140px; }
+        .quick-filters { display:flex; gap:6px; flex-wrap:wrap; }
+        .quick-filters .btn { height:34px; padding:0 16px; font-size:12px; }
+        .stats-panel { display:flex; flex-wrap:wrap; gap:20px 40px; background:var(--bg-stats); border-radius:16px; padding:12px 20px; margin-bottom:18px; border:1px solid var(--border-color); transition:background 0.3s; }
+        .stats-panel .stat-item { display:flex; flex-direction:column; }
+        .stats-panel .stat-item .label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+        .stats-panel .stat-item .value { font-size:18px; font-weight:700; color:var(--text-primary); }
+        .expense-list { display:flex; flex-direction:column; gap:8px; }
+        .expense-item { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; padding:14px 18px; background:var(--bg-item); border-radius:14px; border-left:4px solid #4f7df3; transition:all 0.2s; gap:10px; animation:fadeSlideIn 0.3s ease; position:relative; cursor:default; }
+        .expense-item:hover { background:var(--bg-item-hover); transform:scale(1.01); }
+        .expense-item .tooltip { display:none; position:absolute; bottom:calc(100% + 8px); left:0; background:var(--toast-bg); color:var(--toast-text); padding:8px 14px; border-radius:8px; font-size:12px; white-space:nowrap; pointer-events:none; z-index:10; }
+        .expense-item:hover .tooltip { display:block; }
+        .expense-item .info { display:flex; flex-wrap:wrap; align-items:center; gap:12px 20px; flex:1 1 200px; }
+        .expense-item .info .desc { font-weight:600; font-size:16px; color:var(--text-primary); }
+        .expense-item .info .category { font-size:13px; background:var(--bg-category); padding:2px 12px; border-radius:30px; color:var(--text-secondary); font-weight:500; }
+        .expense-item .info .date { font-size:13px; color:var(--text-muted); }
+        .expense-item .info .tags { font-size:12px; color:var(--text-muted); background:var(--bg-category); padding:1px 8px; border-radius:12px; }
+        .expense-item .info .comment { font-size:12px; color:var(--text-muted); font-style:italic; }
+        .expense-item .amount { font-weight:700; font-size:18px; color:var(--text-primary); white-space:nowrap; }
+        .expense-item .amount.negative { color:#e74c5e; }
+        .expense-item .actions { display:flex; gap:6px; align-items:center; }
+        .expense-item .actions .btn { height:32px; padding:0 12px; font-size:12px; }
+        .star { font-size:22px; cursor:pointer; transition:0.2s; color:#ccc; user-select:none; }
+        .star.active { color:#f1c40f; transform:scale(1.15); }
+        .star:hover { transform:scale(1.25); }
+        @keyframes fadeSlideIn { 0%{opacity:0;transform:translateY(-12px)} 100%{opacity:1;transform:translateY(0)} }
+        .expense-item.removing { animation:slideOut 0.25s ease forwards; }
+        @keyframes slideOut { 0%{opacity:1;transform:translateX(0)} 100%{opacity:0;transform:translateX(30px)} }
+        .empty-state { text-align:center; padding:40px 20px; color:var(--text-muted); }
+        .empty-state .icon { font-size:48px; margin-bottom:12px; }
+        .empty-state h3 { font-weight:600; color:var(--text-primary); }
+        .chart-section { margin-top:20px; padding-top:20px; border-top:1px solid var(--border-color); display:flex; flex-wrap:wrap; gap:30px; align-items:flex-start; }
+        .chart-block { flex:1 1 300px; min-width:250px; }
+        .chart-block h3 { font-size:16px; color:var(--text-secondary); margin-bottom:14px; font-weight:600; }
+        .chart-bars { display:flex; flex-wrap:wrap; gap:12px 20px; align-items:flex-end; }
+        .chart-bar-wrap { display:flex; flex-direction:column; align-items:center; flex:1 1 60px; min-width:50px; }
+        .chart-bar { width:100%; max-width:44px; height:8px; background:#4f7df3; border-radius:6px; transition:height 0.5s ease; min-height:4px; }
+        .chart-bar-wrap .cat-label { font-size:11px; color:var(--text-muted); margin-top:5px; text-align:center; font-weight:500; word-break:break-word; }
+        .chart-bar-wrap .cat-total { font-size:12px; font-weight:600; color:var(--text-primary); margin-bottom:3px; }
+        .no-chart { color:var(--text-muted); font-size:14px; padding:8px 0; }
+        .pie-container { display:flex; flex-direction:column; align-items:center; gap:10px; }
+        .pie-container canvas { max-width:200px; max-height:200px; width:100%; height:auto; border-radius:50%; background:var(--bg-card); }
+        .pie-legend { display:flex; flex-wrap:wrap; gap:8px 16px; justify-content:center; }
+        .pie-legend .legend-item { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary); }
+        .pie-legend .color-box { width:14px; height:14px; border-radius:4px; flex-shrink:0; }
+        .trend-container { width:100%; }
+        .trend-container canvas { width:100%; height:100px; background:var(--bg-input); border-radius:12px; }
+        .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.3); backdrop-filter:blur(4px); display:none; justify-content:center; align-items:center; z-index:1000; animation:fadeIn 0.3s; }
+        .modal-overlay.active { display:flex; }
+        .modal { background:var(--bg-card); padding:30px 35px; border-radius:28px; max-width:500px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.15); animation:slideUp 0.3s ease; color:var(--text-primary); }
+        @keyframes fadeIn { 0%{opacity:0} 100%{opacity:1} }
+        @keyframes slideUp { 0%{transform:translateY(30px);opacity:0} 100%{transform:translateY(0);opacity:1} }
+        .modal h2 { margin-bottom:20px; font-size:22px; color:var(--text-primary); }
+        .modal .form-group { margin-bottom:15px; }
+        .modal .form-group input,.modal .form-group select,.modal .form-group textarea { width:100%; }
+        .modal .actions { display:flex; gap:12px; justify-content:flex-end; margin-top:20px; }
+        footer { margin-top:30px; padding:20px 0 10px; text-align:center; color:var(--text-muted); font-size:14px; width:100%; border-top:1px solid var(--footer-border); transition:border-color 0.3s; }
+        footer a { color:#4f7df3; text-decoration:none; font-weight:600; }
+        footer a:hover { text-decoration:underline; }
+        footer .student { margin-top:6px; font-weight:500; color:var(--text-secondary); }
+        footer .tagline { display:block; margin-top:4px; font-size:13px; opacity:0.8; }
+        .toast { position:fixed; bottom:30px; right:30px; background:var(--toast-bg); color:var(--toast-text); padding:16px 24px; border-radius:16px; font-size:14px; font-weight:500; box-shadow:0 8px 30px rgba(0,0,0,0.2); z-index:999; opacity:0; transform:translateY(20px); transition:opacity 0.4s, transform 0.4s; pointer-events:none; max-width:350px; }
+        .toast.show { opacity:1; transform:translateY(0); pointer-events:auto; }
+        .regular-block { margin-top:15px; padding-top:15px; border-top:1px solid var(--border-color); }
+        .regular-block h4 { font-size:14px; color:var(--text-secondary); margin-bottom:10px; }
+        .regular-item { display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:var(--bg-item); padding:8px 14px; border-radius:10px; margin-bottom:6px; font-size:13px; color:var(--text-primary); }
+        .regular-item .btn { height:28px; padding:0 10px; font-size:11px; }
+        @media (max-width:640px) {
+            .header { flex-direction:column; align-items:stretch; }
+            .header-controls { justify-content:space-between; }
+            .total-box { text-align:center; }
+            .card { padding:18px 16px; }
+            .form-row { flex-direction:column; }
+            .form-group { flex:1 1 auto; min-width:unset; }
+            .btn { width:100%; justify-content:center; }
+            .filter-bar { flex-direction:column; align-items:stretch; }
+            .filter-bar .left { flex-direction:column; align-items:stretch; }
+            .date-filter { flex-direction:column; align-items:stretch; }
+            .date-filter input[type="date"] { width:100%; }
+            .quick-filters { justify-content:center; }
+            .expense-item { flex-direction:column; align-items:stretch; }
+            .expense-item .info { flex-direction:column; align-items:flex-start; gap:6px; }
+            .expense-item .actions { justify-content:flex-end; margin-top:6px; }
+            .budget-box { flex-direction:column; align-items:stretch; }
+            .budget-box input { width:100%; }
+            .stats-panel { gap:12px; }
+            .stats-panel .stat-item .value { font-size:16px; }
+            .chart-section { flex-direction:column; }
+            .pie-container canvas { max-width:150px; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <!-- ШАПКА -->
+    <header class="header">
+        <h1>💰 <span>Трекер Расходов-ПИТ</span></h1>
+        <div class="header-controls">
+            <button class="theme-toggle" id="themeToggle"><span id="themeIcon">🌙</span> <span id="themeLabel">Тёмная</span></button>
+            <div class="total-box">
+                <div class="label">Общий расход</div>
+                <div class="amount" id="totalAmount">0 ₽</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ФОРМА ДОБАВЛЕНИЯ -->
+    <div class="card">
+        <form id="expenseForm" class="form-row">
+            <div class="form-group">
+                <label for="descInput">Описание</label>
+                <input type="text" id="descInput" placeholder="Кофе" required />
+            </div>
+            <div class="form-group">
+                <label for="amountInput">Сумма</label>
+                <input type="number" id="amountInput" placeholder="500" min="0.01" step="0.01" required />
+            </div>
+            <div class="form-group">
+                <label for="categoryInput">Категория</label>
+                <input type="text" id="categoryInput" list="categoryList" placeholder="Еда" required />
+                <datalist id="categoryList"><option value="Еда">🍔 Еда</option><option value="Транспорт">🚗 Транспорт</option><option value="Жильё">🏠 Жильё</option><option value="Развлечения">🎮 Развлечения</option><option value="Здоровье">💊 Здоровье</option><option value="Одежда">👕 Одежда</option><option value="Другое">📦 Другое</option></datalist>
+            </div>
+            <div class="form-group">
+                <label for="dateInput">Дата</label>
+                <input type="date" id="dateInput" required />
+            </div>
+            <div class="form-group">
+                <label for="tagInput">Теги (через запятую)</label>
+                <input type="text" id="tagInput" placeholder="работа, дом" />
+            </div>
+            <div class="form-group">
+                <label for="commentInput">Комментарий</label>
+                <input type="text" id="commentInput" placeholder="необязательно" />
+            </div>
+            <div class="form-group" style="flex:0 0 100px;">
+                <label for="currencySelect">Валюта</label>
+                <select id="currencySelect">
+                    <option value="₽">₽</option>
+                    <option value="$">$</option>
+                    <option value="€">€</option>
+                    <option value="£">£</option>
+                    <option value="¥">¥</option>
+                </select>
+            </div>
+            <button type="submit" class="btn">➕ Добавить</button>
+        </form>
+
+        <div class="budget-box">
+            <label>🗓️ Бюджет на месяц:</label>
+            <input type="number" id="budgetInput" placeholder="30000" min="0" step="100" />
+            <button class="btn btn-sm btn-success" id="setBudgetBtn">Установить</button>
+            <div class="progress-wrap"><div class="progress-fill" id="budgetProgress" style="width:0%;"></div></div>
+            <span class="budget-info" id="budgetInfo">0 ₽ / 0 ₽</span>
+        </div>
+
+        <!-- Регулярные расходы -->
+        <div class="regular-block">
+            <h4>🔄 Регулярные расходы (автодобавление)</h4>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px;">
+                <input type="text" id="regularName" placeholder="Название" style="padding:6px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-input);color:var(--text-primary);flex:1;min-width:120px;" />
+                <input type="number" id="regularAmount" placeholder="Сумма" style="padding:6px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-input);color:var(--text-primary);width:100px;" />
+                <input type="text" id="regularCategory" placeholder="Категория" list="categoryList" style="padding:6px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-input);color:var(--text-primary);flex:1;min-width:100px;" />
+                <select id="regularPeriod" style="padding:6px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-input);color:var(--text-primary);">
+                    <option value="daily">Ежедневно</option>
+                    <option value="weekly">Еженедельно</option>
+                    <option value="monthly">Ежемесячно</option>
+                </select>
+                <button class="btn btn-sm btn-success" id="addRegularBtn">➕ Добавить шаблон</button>
+            </div>
+            <div id="regularList"></div>
+        </div>
+    </div>
+
+    <!-- ФИЛЬТРЫ + СПИСОК -->
+    <div class="card">
+        <div class="filter-bar">
+            <div class="left">
+                <select id="filterCategory"><option value="all">Все категории</option></select>
+                <input type="text" id="searchInput" placeholder="🔍 Поиск..." />
+                <select id="sortSelect">
+                    <option value="date-desc">📅 Новые ↑</option>
+                    <option value="date-asc">📅 Старые ↑</option>
+                    <option value="amount-desc">💰 По убыванию</option>
+                    <option value="amount-asc">💰 По возрастанию</option>
+                    <option value="category">🏷️ По категории</option>
+                    <option value="important">⭐ Сначала важные</option>
+                </select>
+                <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;color:var(--text-secondary);">
+                    <input type="checkbox" id="importantFilter" /> ⭐ Только важные
+                </label>
+                <input type="text" id="tagFilter" placeholder="🏷️ Фильтр по тегам" style="width:130px;" />
+                <div class="date-filter">
+                    <input type="date" id="dateFrom" /><span style="color:var(--text-muted);">—</span><input type="date" id="dateTo" />
+                </div>
+                <div class="quick-filters">
+                    <button class="btn btn-outline btn-sm" data-period="today">Сегодня</button>
+                    <button class="btn btn-outline btn-sm" data-period="week">Неделя</button>
+                    <button class="btn btn-outline btn-sm" data-period="month">Месяц</button>
+                </div>
+                <button class="btn btn-outline btn-sm" id="clearFiltersBtn">✕ Очистить</button>
+            </div>
+            <div class="stats" id="statsCount">0 записей</div>
+        </div>
+
+        <div class="stats-panel" id="statsPanel">
+            <div class="stat-item"><span class="label">Всего записей</span><span class="value" id="statCount">0</span></div>
+            <div class="stat-item"><span class="label">Средний расход</span><span class="value" id="statAverage">0 ₽</span></div>
+            <div class="stat-item"><span class="label">Максимальный</span><span class="value" id="statMax">0 ₽</span></div>
+            <div class="stat-item"><span class="label">Минимальный</span><span class="value" id="statMin">0 ₽</span></div>
+            <div class="stat-item"><span class="label">Кол-во категорий</span><span class="value" id="statCategories">0</span></div>
+            <div class="stat-item"><span class="label">За сегодня</span><span class="value" id="statToday">0 ₽</span></div>
+            <div class="stat-item"><span class="label">За неделю</span><span class="value" id="statWeek">0 ₽</span></div>
+            <div class="stat-item"><span class="label">За месяц</span><span class="value" id="statMonth">0 ₽</span></div>
+        </div>
+
+        <div class="expense-list" id="expenseList"></div>
+
+        <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" id="exportJsonBtn">📁 Экспорт JSON</button>
+            <button class="btn btn-outline btn-sm" id="exportCsvBtn">📄 Экспорт CSV</button>
+            <button class="btn btn-outline btn-sm" id="importBtn">📂 Импорт JSON</button>
+            <input type="file" id="importFile" accept=".json" style="display:none;" />
+            <button class="btn btn-danger btn-sm" id="clearAllBtn">🗑️ Очистить все</button>
+        </div>
+    </div>
+
+    <!-- ДИАГРАММЫ -->
+    <div class="card" id="chartSection">
+        <div class="chart-block"><h3>📊 Столбчатая диаграмма</h3><div class="chart-bars" id="chartBars"></div></div>
+        <div class="chart-block"><h3>🥧 Круговая диаграмма</h3><div class="pie-container"><canvas id="pieChart" width="200" height="200"></canvas><div class="pie-legend" id="pieLegend"></div></div></div>
+        <div class="chart-block" style="flex:1 1 100%;"><h3>📈 Тренд расходов (по дням)</h3><div class="trend-container"><canvas id="trendChart"></canvas></div></div>
+    </div>
+</div>
+
+<!-- ПОДВАЛ -->
+<footer>
+    <p>© 2026 <strong>Трекер Расходов-ПИТ</strong></p>
+    <p class="student">Сделано студентом группы ПИТ г. Назрань</p>
+    <span class="tagline">расчитывайте свои расходы на все категории без проблем</span>
+</footer>
+
+<!-- ТОСТ -->
+<div class="toast" id="toast"></div>
+
+<!-- МОДАЛКА РЕДАКТИРОВАНИЯ -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <h2>✏️ Редактировать расход</h2>
+        <form id="editForm">
+            <input type="hidden" id="editId" />
+            <div class="form-group"><label for="editDesc">Описание</label><input type="text" id="editDesc" required /></div>
+            <div class="form-group"><label for="editAmount">Сумма</label><input type="number" id="editAmount" min="0.01" step="0.01" required /></div>
+            <div class="form-group"><label for="editCategory">Категория</label><input type="text" id="editCategory" list="categoryList" required /></div>
+            <div class="form-group"><label for="editDate">Дата</label><input type="date" id="editDate" required /></div>
+            <div class="form-group"><label for="editTag">Теги (через запятую)</label><input type="text" id="editTag" /></div>
+            <div class="form-group"><label for="editComment">Комментарий</label><input type="text" id="editComment" /></div>
+            <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+                <label for="editImportant">⭐ Важный</label><input type="checkbox" id="editImportant" />
+            </div>
+            <div class="actions"><button type="button" class="btn btn-outline" id="closeEditModal">Отмена</button><button type="submit" class="btn">Сохранить</button></div>
+        </form>
+    </div>
+</div>
+
+<script>
+// ======================== ВЕСЬ JS =========================
+(function() {
+    'use strict';
+
+    let expenses = [];
+    let budget = 0;
+    let allCategories = ['Еда','Транспорт','Жильё','Развлечения','Здоровье','Одежда','Другое'];
+    let regulars = []; // {id, name, amount, category, period, lastAdded}
+    let currencySymbol = '₽';
+
+    const STORAGE_KEY = 'expenseTrackerData';
+    const BUDGET_KEY = 'expenseTrackerBudget';
+    const CATEGORIES_KEY = 'expenseTrackerCategories';
+    const THEME_KEY = 'expenseTrackerTheme';
+    const CURRENCY_KEY = 'expenseTrackerCurrency';
+    const REGULARS_KEY = 'expenseTrackerRegulars';
+
+    // DOM
+    const form = document.getElementById('expenseForm');
+    const descInput = document.getElementById('descInput');
+    const amountInput = document.getElementById('amountInput');
+    const categoryInput = document.getElementById('categoryInput');
+    const categoryList = document.getElementById('categoryList');
+    const dateInput = document.getElementById('dateInput');
+    const tagInput = document.getElementById('tagInput');
+    const commentInput = document.getElementById('commentInput');
+    const currencySelect = document.getElementById('currencySelect');
+    const expenseList = document.getElementById('expenseList');
+    const totalAmountEl = document.getElementById('totalAmount');
+    const statsCount = document.getElementById('statsCount');
+    const filterCategory = document.getElementById('filterCategory');
+    const searchInput = document.getElementById('searchInput');
+    const sortSelect = document.getElementById('sortSelect');
+    const importantFilter = document.getElementById('importantFilter');
+    const tagFilter = document.getElementById('tagFilter');
+    const dateFrom = document.getElementById('dateFrom');
+    const dateTo = document.getElementById('dateTo');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+    const chartBars = document.getElementById('chartBars');
+    const budgetInput = document.getElementById('budgetInput');
+    const setBudgetBtn = document.getElementById('setBudgetBtn');
+    const budgetProgress = document.getElementById('budgetProgress');
+    const budgetInfo = document.getElementById('budgetInfo');
+    const exportJsonBtn = document.getElementById('exportJsonBtn');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    const importBtn = document.getElementById('importBtn');
+    const importFile = document.getElementById('importFile');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const statCount = document.getElementById('statCount');
+    const statAverage = document.getElementById('statAverage');
+    const statMax = document.getElementById('statMax');
+    const statMin = document.getElementById('statMin');
+    const statCategories = document.getElementById('statCategories');
+    const statToday = document.getElementById('statToday');
+    const statWeek = document.getElementById('statWeek');
+    const statMonth = document.getElementById('statMonth');
+    const quickFilterBtns = document.querySelectorAll('.quick-filters .btn');
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeLabel = document.getElementById('themeLabel');
+    const toast = document.getElementById('toast');
+    const pieCanvas = document.getElementById('pieChart');
+    const pieLegend = document.getElementById('pieLegend');
+    const trendCanvas = document.getElementById('trendChart');
+    const regularList = document.getElementById('regularList');
+    const regularName = document.getElementById('regularName');
+    const regularAmount = document.getElementById('regularAmount');
+    const regularCategory = document.getElementById('regularCategory');
+    const regularPeriod = document.getElementById('regularPeriod');
+    const addRegularBtn = document.getElementById('addRegularBtn');
+
+    const editModal = document.getElementById('editModal');
+    const editForm = document.getElementById('editForm');
+    const editId = document.getElementById('editId');
+    const editDesc = document.getElementById('editDesc');
+    const editAmount = document.getElementById('editAmount');
+    const editCategory = document.getElementById('editCategory');
+    const editDate = document.getElementById('editDate');
+    const editTag = document.getElementById('editTag');
+    const editComment = document.getElementById('editComment');
+    const editImportant = document.getElementById('editImportant');
+    const closeEditModal = document.getElementById('closeEditModal');
+
+    let toastTimeout = null;
+
+    // ----- ТЕМА -----
+    function loadTheme() {
+        const saved = localStorage.getItem(THEME_KEY);
+        if (saved === 'dark') { document.documentElement.setAttribute('data-theme','dark'); themeIcon.textContent='☀️'; themeLabel.textContent='Светлая'; }
+        else { document.documentElement.removeAttribute('data-theme'); themeIcon.textContent='🌙'; themeLabel.textContent='Тёмная'; }
+    }
+    function toggleTheme() {
+        if (document.documentElement.getAttribute('data-theme') === 'dark') {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem(THEME_KEY,'light');
+            themeIcon.textContent='🌙'; themeLabel.textContent='Тёмная';
+        } else {
+            document.documentElement.setAttribute('data-theme','dark');
+            localStorage.setItem(THEME_KEY,'dark');
+            themeIcon.textContent='☀️'; themeLabel.textContent='Светлая';
+        }
+    }
+
+    // ----- ЗАГРУЗКА -----
+    function loadFromStorage() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) expenses = parsed; }
+            const b = localStorage.getItem(BUDGET_KEY);
+            if (b) budget = parseFloat(b) || 0;
+            const cats = localStorage.getItem(CATEGORIES_KEY);
+            if (cats) { const parsedCats = JSON.parse(cats); if (Array.isArray(parsedCats) && parsedCats.length) allCategories = parsedCats; }
+            const curr = localStorage.getItem(CURRENCY_KEY);
+            if (curr) currencySymbol = curr;
+            const reg = localStorage.getItem(REGULARS_KEY);
+            if (reg) { const parsedReg = JSON.parse(reg); if (Array.isArray(parsedReg)) regulars = parsedReg; }
+        } catch(_) {}
+        currencySelect.value = currencySymbol;
+        updateCategoryList();
+    }
+
+    function saveToStorage() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+        localStorage.setItem(BUDGET_KEY, String(budget));
+        localStorage.setItem(CATEGORIES_KEY, JSON.stringify(allCategories));
+        localStorage.setItem(CURRENCY_KEY, currencySymbol);
+        localStorage.setItem(REGULARS_KEY, JSON.stringify(regulars));
+    }
+
+    function updateCategoryList() {
+        categoryList.innerHTML = '';
+        allCategories.forEach(cat => { const opt = document.createElement('option'); opt.value = cat; categoryList.appendChild(opt); });
+        const currentVal = filterCategory.value;
+        filterCategory.innerHTML = '<option value="all">Все категории</option>';
+        allCategories.forEach(cat => { const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; filterCategory.appendChild(opt); });
+        if (currentVal && allCategories.includes(currentVal)) filterCategory.value = currentVal;
+    }
+
+    // ----- ВСПОМОГАТЕЛЬНЫЕ -----
+    function formatDate(dateStr) { if (!dateStr) return '—'; const d = new Date(dateStr+'T00:00:00'); return d.toLocaleDateString('ru-RU', {day:'2-digit', month:'short', year:'numeric'}); }
+    function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+    function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+    function getCategoryColor(cat) {
+        const map = {'Еда':'#f39c12','Транспорт':'#3498db','Жильё':'#9b59b6','Развлечения':'#e67e22','Здоровье':'#2ecc71','Одежда':'#e74c5e','Другое':'#95a5a6'};
+        return map[cat] || '#4f7df3';
+    }
+    function getCategoryColors() { return ['#f39c12','#3498db','#9b59b6','#e67e22','#2ecc71','#e74c5e','#95a5a6','#1abc9c','#34495e','#e67e22','#8e44ad']; }
+    function declension(n, forms) { const mod10=n%10, mod100=n%100; if (mod100>=11 && mod100<=19) return forms[2]; if (mod10===1) return forms[0]; if (mod10>=2 && mod10<=4) return forms[1]; return forms[2]; }
+    function getCurrentMonth() { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+    function getToday() { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+    function getWeekStart() { const d=new Date(); d.setDate(d.getDate()-d.getDay()); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+    // ----- ТОСТ -----
+    function showToast(message, duration=4000) {
+        toast.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, duration);
+    }
+
+    // ----- ЗВУК -----
+    function playBeep() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            oscillator.connect(gain);
+            gain.connect(audioCtx.destination);
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            gain.gain.value = 0.1;
+            oscillator.start();
+            setTimeout(() => { oscillator.stop(); }, 100);
+        } catch(_) {}
+    }
+
+    // ----- РЕГУЛЯРНЫЕ РАСХОДЫ -----
+    function addRegular() {
+        const name = regularName.value.trim();
+        const amount = parseFloat(regularAmount.value);
+        const category = regularCategory.value.trim();
+        const period = regularPeriod.value;
+        if (!name) { alert('Введите название.'); return; }
+        if (!amount || amount<=0) { alert('Введите сумму > 0.'); return; }
+        if (!category) { alert('Введите категорию.'); return; }
+        if (!allCategories.includes(category)) { allCategories.push(category); updateCategoryList(); }
+        const reg = { id: generateId(), name, amount, category, period, lastAdded: getToday() };
+        regulars.push(reg);
+        saveToStorage();
+        renderRegulars();
+        showToast('✅ Шаблон добавлен', 2000);
+        regularName.value = ''; regularAmount.value = ''; regularCategory.value = '';
+    }
+
+    function deleteRegular(id) {
+        if (!confirm('Удалить шаблон?')) return;
+        regulars = regulars.filter(r => r.id !== id);
+        saveToStorage();
+        renderRegulars();
+    }
+
+    function renderRegulars() {
+        if (regulars.length === 0) { regularList.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Нет шаблонов</div>'; return; }
+        let html = '';
+        regulars.forEach(r => {
+            html += `<div class="regular-item">
+                <span>${escapeHtml(r.name)} — ${r.amount} ${currencySymbol} (${r.category}) ${r.period}</span>
+                <button class="btn btn-danger btn-sm" data-id="${r.id}">✕</button>
+            </div>`;
+        });
+        regularList.innerHTML = html;
+        document.querySelectorAll('.regular-item .btn').forEach(btn => {
+            btn.addEventListener('click', function() { deleteRegular(this.dataset.id); });
+        });
+    }
+
+    function applyRegulars() {
+        const today = getToday();
+        let added = 0;
+        regulars.forEach(r => {
+            let shouldAdd = false;
+            if (r.period === 'daily') { shouldAdd = true; }
+            else if (r.period === 'weekly') {
+                // если прошло 7 дней с последнего добавления
+                const last = new Date(r.lastAdded + 'T00:00:00');
+                const now = new Date(today + 'T00:00:00');
+                const diffDays = (now - last) / (1000*60*60*24);
+                if (diffDays >= 7) shouldAdd = true;
+            } else if (r.period === 'monthly') {
+                const last = new Date(r.lastAdded + 'T00:00:00');
+                const now = new Date(today + 'T00:00:00');
+                const diffMonths = (now.getFullYear() - last.getFullYear()) * 12 + (now.getMonth() - last.getMonth());
+                if (diffMonths >= 1) shouldAdd = true;
+            }
+            if (shouldAdd) {
+                // добавляем расход
+                const newExp = {
+                    id: generateId(),
+                    description: r.name + ' (авто)',
+                    amount: r.amount,
+                    category: r.category,
+                    date: today,
+                    important: false,
+                    tags: 'регулярный',
+                    comment: 'Автоматически добавлен',
+                    currency: currencySymbol
+                };
+                expenses.push(newExp);
+                r.lastAdded = today;
+                added++;
+            }
+        });
+        if (added > 0) {
+            saveToStorage();
+            render();
+            showToast(`🔄 Добавлено ${added} регулярных расходов`, 3000);
+        }
+    }
+
+    // ----- РЕНДЕРИНГ -----
+    function render() {
+        // обновляем категории
+        expenses.forEach(e => { if (e.category && !allCategories.includes(e.category)) allCategories.push(e.category); });
+        updateCategoryList();
+
+        const catFilter = filterCategory.value;
+        const searchTerm = searchInput.value.trim().toLowerCase();
+        const onlyImportant = importantFilter.checked;
+        const fromDate = dateFrom.value;
+        const toDate = dateTo.value;
+        const tagFilterVal = tagFilter.value.trim().toLowerCase();
+
+        let filtered = expenses.filter(e => {
+            const matchCat = catFilter === 'all' || e.category === catFilter;
+            const matchSearch = e.description.toLowerCase().includes(searchTerm);
+            const matchImportant = !onlyImportant || (e.important === true);
+            let matchDate = true;
+            if (fromDate && e.date < fromDate) matchDate = false;
+            if (toDate && e.date > toDate) matchDate = false;
+            let matchTag = true;
+            if (tagFilterVal) {
+                const tags = e.tags ? e.tags.split(',').map(t=>t.trim().toLowerCase()) : [];
+                matchTag = tags.some(t => t.includes(tagFilterVal));
+            }
+            return matchCat && matchSearch && matchImportant && matchDate && matchTag;
+        });
+
+        const sortVal = sortSelect.value;
+        filtered.sort((a,b) => {
+            switch(sortVal) {
+                case 'date-desc': return b.date.localeCompare(a.date) || b.id.localeCompare(a.id);
+                case 'date-asc': return a.date.localeCompare(b.date) || a.id.localeCompare(b.id);
+                case 'amount-desc': return b.amount - a.amount;
+                case 'amount-asc': return a.amount - b.amount;
+                case 'category': return a.category.localeCompare(b.category);
+                case 'important': return (b.important ? 1 : 0) - (a.important ? 1 : 0);
+                default: return b.date.localeCompare(a.date) || b.id.localeCompare(a.id);
+            }
+        });
+
+        const total = expenses.reduce((s, e) => s + e.amount, 0);
+        totalAmountEl.textContent = total.toFixed(2) + ' ' + currencySymbol;
+        totalAmountEl.className = 'amount' + (total < 0 ? ' negative' : '');
+
+        const count = filtered.length;
+        const sum = filtered.reduce((s, e) => s + e.amount, 0);
+        const avg = count ? sum / count : 0;
+        const maxVal = count ? Math.max(...filtered.map(e => e.amount)) : 0;
+        const minVal = count ? Math.min(...filtered.map(e => e.amount)) : 0;
+        const uniqueCats = new Set(filtered.map(e => e.category)).size;
+        statCount.textContent = count;
+        statAverage.textContent = avg.toFixed(2) + ' ' + currencySymbol;
+        statMax.textContent = maxVal.toFixed(2) + ' ' + currencySymbol;
+        statMin.textContent = minVal.toFixed(2) + ' ' + currencySymbol;
+        statCategories.textContent = uniqueCats;
+
+        // Статистика за сегодня, неделю, месяц
+        const today = getToday();
+        const weekStart = getWeekStart();
+        const monthStart = getCurrentMonth() + '-01';
+        const todaySum = expenses.filter(e => e.date === today).reduce((s,e) => s + e.amount, 0);
+        const weekSum = expenses.filter(e => e.date >= weekStart && e.date <= today).reduce((s,e) => s + e.amount, 0);
+        const monthSum = expenses.filter(e => e.date >= monthStart && e.date <= today).reduce((s,e) => s + e.amount, 0);
+        statToday.textContent = todaySum.toFixed(2) + ' ' + currencySymbol;
+        statWeek.textContent = weekSum.toFixed(2) + ' ' + currencySymbol;
+        statMonth.textContent = monthSum.toFixed(2) + ' ' + currencySymbol;
+
+        statsCount.textContent = filtered.length + ' ' + declension(filtered.length, ['запись','записи','записей']);
+
+        if (filtered.length === 0) {
+            expenseList.innerHTML = `<div class="empty-state"><div class="icon">📭</div><h3>Нет расходов</h3><p>Добавьте первый расход, чтобы начать.</p></div>`;
+        } else {
+            let html = '';
+            filtered.forEach(e => {
+                const starClass = e.important ? 'active' : '';
+                const tooltip = `Добавлен: ${formatDate(e.date)} | ID: ${e.id.slice(0,6)}`;
+                const tags = e.tags ? e.tags.split(',').map(t=>t.trim()).filter(t=>t).join(', ') : '';
+                const comment = e.comment ? `<span class="comment">💬 ${escapeHtml(e.comment)}</span>` : '';
+                html += `
+                    <div class="expense-item" data-id="${e.id}">
+                        <div class="tooltip">${tooltip}</div>
+                        <div class="info">
+                            <span class="star ${starClass}" data-id="${e.id}">⭐</span>
+                            <span class="desc">${escapeHtml(e.description)}</span>
+                            <span class="category">${escapeHtml(e.category)}</span>
+                            ${tags ? `<span class="tags">🏷️ ${escapeHtml(tags)}</span>` : ''}
+                            ${comment}
+                            <span class="date">📅 ${formatDate(e.date)}</span>
+                        </div>
+                        <span class="amount negative">- ${e.amount.toFixed(2)} ${currencySymbol}</span>
+                        <div class="actions">
+                            <button class="btn btn-outline btn-sm edit-btn" data-id="${e.id}">✏️</button>
+                            <button class="btn btn-danger btn-sm delete-btn" data-id="${e.id}">✕</button>
+                        </div>
+                    </div>
+                `;
+            });
+            expenseList.innerHTML = html;
+            document.querySelectorAll('.delete-btn').forEach(btn => { btn.addEventListener('click', function() { deleteExpense(this.dataset.id); }); });
+            document.querySelectorAll('.edit-btn').forEach(btn => { btn.addEventListener('click', function() { openEditModal(this.dataset.id); }); });
+            document.querySelectorAll('.star').forEach(el => { el.addEventListener('click', function() { toggleImportant(this.dataset.id); }); });
+        }
+
+        renderCharts(filtered);
+        updateBudget();
+        renderRegulars();
+        saveToStorage();
+    }
+
+    // ----- ДИАГРАММЫ -----
+    function renderCharts(filtered) {
+        // Столбчатая
+        const map = new Map();
+        filtered.forEach(e => { const cat = e.category; map.set(cat, (map.get(cat)||0) + e.amount); });
+        const entries = Array.from(map.entries());
+        if (entries.length === 0) {
+            chartBars.innerHTML = `<div class="no-chart">Нет данных для диаграммы</div>`;
+        } else {
+            const maxVal = Math.max(...entries.map(([,v]) => v), 1);
+            let html = '';
+            entries.sort((a,b) => b[1] - a[1]);
+            for (const [cat, sum] of entries) {
+                const height = Math.max((sum / maxVal) * 100, 4);
+                html += `<div class="chart-bar-wrap"><div class="cat-total">${sum.toFixed(0)} ${currencySymbol}</div><div class="chart-bar" style="height:${height}px; background:${getCategoryColor(cat)};"></div><div class="cat-label">${cat}</div></div>`;
+            }
+            chartBars.innerHTML = html;
+        }
+
+        // Круговая
+        drawPieChart(entries);
+
+        // Тренд (линейный график по дням)
+        drawTrend(filtered);
+    }
+
+    function drawPieChart(entries) {
+        const ctx = pieCanvas.getContext('2d');
+        const width = pieCanvas.width, height = pieCanvas.height;
+        const radius = Math.min(width, height)/2 * 0.85;
+        const cx = width/2, cy = height/2;
+        ctx.clearRect(0,0,width,height);
+        if (entries.length === 0) {
+            ctx.fillStyle = '#ccc'; ctx.font='16px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText('Нет данных', cx, cy);
+            pieLegend.innerHTML = '';
+            return;
+        }
+        const total = entries.reduce((s,[,val]) => s + val, 0);
+        if (total === 0) { pieLegend.innerHTML = ''; return; }
+        let startAngle = -Math.PI/2;
+        const colors = getCategoryColors();
+        let legendHtml = [];
+        entries.forEach(([cat, val], idx) => {
+            const slice = (val/total) * 2*Math.PI;
+            const color = colors[idx % colors.length];
+            ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,radius,startAngle,startAngle+slice); ctx.closePath();
+            ctx.fillStyle = color; ctx.fill();
+            ctx.strokeStyle = 'var(--bg-card)'; ctx.lineWidth=2; ctx.stroke();
+            startAngle += slice;
+            const percent = ((val/total)*100).toFixed(1);
+            legendHtml.push(`<div class="legend-item"><span class="color-box" style="background:${color};"></span>${cat} (${percent}%)</div>`);
+        });
+        pieLegend.innerHTML = legendHtml.join('');
+    }
+
+    function drawTrend(filtered) {
+        const canvas = trendCanvas;
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        const w = Math.min(rect.width || 400, 800);
+        const h = 100;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+        ctx.scale(dpr, dpr);
+
+        ctx.clearRect(0,0,w,h);
+        if (filtered.length === 0) {
+            ctx.fillStyle = '#999'; ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText('Нет данных для тренда', w/2, h/2);
+            return;
+        }
+        // Группируем по датам
+        const map = new Map();
+        filtered.forEach(e => { map.set(e.date, (map.get(e.date)||0) + e.amount); });
+        const sortedDates = Array.from(map.keys()).sort();
+        const values = sortedDates.map(d => map.get(d));
+        const maxVal = Math.max(...values, 1);
+        const minVal = Math.min(...values, 0);
+
+        const padding = {top:10, bottom:10, left:30, right:10};
+        const chartW = w - padding.left - padding.right;
+        const chartH = h - padding.top - padding.bottom;
+
+        // Рисуем оси
+        ctx.strokeStyle = 'var(--text-muted)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, padding.top);
+        ctx.lineTo(padding.left, h - padding.bottom);
+        ctx.lineTo(w - padding.right, h - padding.bottom);
+        ctx.stroke();
+
+        if (sortedDates.length < 2) {
+            // Одна точка
+            const y = padding.top + chartH - (values[0] - minVal) / (maxVal - minVal || 1) * chartH;
+            ctx.fillStyle = '#4f7df3';
+            ctx.beginPath();
+            ctx.arc(padding.left, y, 3, 0, 2*Math.PI);
+            ctx.fill();
+            ctx.fillStyle = 'var(--text-secondary)';
+            ctx.font='10px sans-serif';
+            ctx.textAlign='center';
+            ctx.fillText(sortedDates[0], padding.left, h - padding.bottom + 15);
+            return;
+        }
+
+        // Рисуем линию
+        ctx.beginPath();
+        ctx.strokeStyle = '#4f7df3';
+        ctx.lineWidth = 2;
+        const step = chartW / (sortedDates.length - 1);
+        sortedDates.forEach((date, i) => {
+            const x = padding.left + i * step;
+            const y = padding.top + chartH - (map.get(date) - minVal) / (maxVal - minVal || 1) * chartH;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // Точки
+        sortedDates.forEach((date, i) => {
+            const x = padding.left + i * step;
+            const y = padding.top + chartH - (map.get(date) - minVal) / (maxVal - minVal || 1) * chartH;
+            ctx.fillStyle = '#4f7df3';
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, 2*Math.PI);
+            ctx.fill();
+        });
+
+        // Подписи дат (каждая 3-я)
+        ctx.fillStyle = 'var(--text-muted)';
+        ctx.font = '9px sans-serif';
+        ctx.textAlign = 'center';
+        sortedDates.forEach((date, i) => {
+            if (i % Math.max(1, Math.floor(sortedDates.length/6)) === 0 || i === sortedDates.length-1) {
+                const x = padding.left + i * step;
+                ctx.fillText(date.slice(5), x, h - padding.bottom + 13);
+            }
+        });
+    }
+
+    // ----- БЮДЖЕТ И УВЕДОМЛЕНИЕ -----
+    function updateBudget() {
+        const month = getCurrentMonth();
+        const monthExpenses = expenses.filter(e => e.date.startsWith(month));
+        const spent = monthExpenses.reduce((s, e) => s + e.amount, 0);
+        const remaining = budget - spent;
+        const percent = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+        budgetProgress.style.width = percent + '%';
+        budgetProgress.style.background = percent > 80 ? '#e74c5e' : (percent > 60 ? '#f1c40f' : '#2ecc71');
+        budgetInfo.textContent = `${spent.toFixed(0)} ${currencySymbol} / ${budget.toFixed(0)} ${currencySymbol} (осталось ${remaining.toFixed(0)} ${currencySymbol})`;
+        budgetInput.value = budget || '';
+        if (budget > 0 && percent >= 80) showToast(`⚠️ Внимание! Вы потратили ${percent.toFixed(0)}% бюджета. Осталось ${remaining.toFixed(0)} ${currencySymbol}`, 5000);
+    }
+
+    function setBudget() {
+        const val = parseFloat(budgetInput.value);
+        if (!isNaN(val) && val >= 0) { budget = val; saveToStorage(); updateBudget(); }
+        else alert('Введите корректную сумму бюджета.');
+    }
+
+    // ----- ДОБАВЛЕНИЕ -----
+    function addExpense(e) {
+        e.preventDefault();
+        const description = descInput.value.trim();
+        const amount = parseFloat(amountInput.value);
+        let category = categoryInput.value.trim();
+        const date = dateInput.value;
+        const tags = tagInput.value.trim();
+        const comment = commentInput.value.trim();
+        if (!description) { alert('Введите описание.'); return; }
+        if (!amount || amount <= 0) { alert('Введите сумму > 0.'); return; }
+        if (!category) { alert('Введите категорию.'); return; }
+        if (!date) { alert('Выберите дату.'); return; }
+
+        if (!allCategories.includes(category)) { allCategories.push(category); updateCategoryList(); }
+
+        const newExpense = {
+            id: generateId(),
+            description,
+            amount,
+            category,
+            date,
+            important: false,
+            tags: tags,
+            comment: comment,
+            currency: currencySymbol
+        };
+        expenses.push(newExpense);
+        render();
+        playBeep();
+        showToast('✅ Расход добавлен', 2000);
+        descInput.value = ''; amountInput.value = ''; categoryInput.value = ''; dateInput.value = ''; tagInput.value = ''; commentInput.value = '';
+        descInput.focus();
+        expenseList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ----- УДАЛЕНИЕ -----
+    function deleteExpense(id) {
+        if (!confirm('Удалить этот расход?')) return;
+        const item = document.querySelector(`.expense-item[data-id="${id}"]`);
+        if (item) { item.classList.add('removing'); setTimeout(() => { expenses = expenses.filter(e => e.id !== id); render(); showToast('🗑️ Расход удалён',2000); }, 250); }
+        else { expenses = expenses.filter(e => e.id !== id); render(); showToast('🗑️ Расход удалён',2000); }
+    }
+
+    // ----- ВАЖНОСТЬ -----
+    function toggleImportant(id) {
+        const exp = expenses.find(e => e.id === id);
+        if (exp) { exp.important = !exp.important; render(); }
+    }
+
+    // ----- РЕДАКТИРОВАНИЕ -----
+    function openEditModal(id) {
+        const exp = expenses.find(e => e.id === id);
+        if (!exp) return;
+        editId.value = exp.id;
+        editDesc.value = exp.description;
+        editAmount.value = exp.amount;
+        editCategory.value = exp.category;
+        editDate.value = exp.date;
+        editTag.value = exp.tags || '';
+        editComment.value = exp.comment || '';
+        editImportant.checked = exp.important || false;
+        editModal.classList.add('active');
+    }
+
+    function closeEditModalFn() { editModal.classList.remove('active'); }
+
+    function saveEdit(e) {
+        e.preventDefault();
+        const id = editId.value;
+        const exp = expenses.find(e => e.id === id);
+        if (!exp) return;
+        const desc = editDesc.value.trim();
+        const amount = parseFloat(editAmount.value);
+        const category = editCategory.value.trim();
+        const date = editDate.value;
+        const tags = editTag.value.trim();
+        const comment = editComment.value.trim();
+        if (!desc) { alert('Введите описание.'); return; }
+        if (!amount || amount <= 0) { alert('Введите сумму > 0.'); return; }
+        if (!category) { alert('Введите категорию.'); return; }
+        if (!date) { alert('Выберите дату.'); return; }
+
+        if (!allCategories.includes(category)) { allCategories.push(category); updateCategoryList(); }
+
+        exp.description = desc;
+        exp.amount = amount;
+        exp.category = category;
+        exp.date = date;
+        exp.tags = tags;
+        exp.comment = comment;
+        exp.important = editImportant.checked;
+        closeEditModalFn();
+        render();
+        showToast('✏️ Расход обновлён', 2000);
+    }
+
+    // ----- ЭКСПОРТ/ИМПОРТ -----
+    function exportJson() {
+        const data = { expenses, budget, categories: allCategories, regulars };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `expenses_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('📁 JSON экспортирован', 2000);
+    }
+
+    function exportCsv() {
+        if (expenses.length === 0) { alert('Нет данных.'); return; }
+        let csv = 'Дата,Категория,Описание,Сумма,Важность,Теги,Комментарий\n';
+        expenses.forEach(e => {
+            const important = e.important ? 'Да' : 'Нет';
+            csv += `${e.date},${e.category},${e.description},${e.amount},${important},${e.tags||''},${e.comment||''}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `expenses_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('📄 CSV экспортирован', 2000);
+    }
+
+    function importData(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.expenses && Array.isArray(data.expenses)) {
+                    expenses = data.expenses;
+                    if (data.budget !== undefined) budget = data.budget;
+                    if (data.categories && Array.isArray(data.categories)) allCategories = data.categories;
+                    if (data.regulars && Array.isArray(data.regulars)) regulars = data.regulars;
+                    saveToStorage();
+                    render();
+                    showToast('✅ Данные импортированы', 3000);
+                } else alert('Неверный формат.');
+            } catch(_) { alert('Ошибка чтения файла.'); }
+        };
+        reader.readAsText(file);
+    }
+
+    function clearAll() {
+        if (confirm('Удалить ВСЕ расходы? Действие необратимо.')) {
+            expenses = [];
+            regulars = [];
+            render();
+            showToast('🗑️ Все данные удалены', 2000);
+        }
+    }
+
+    // ----- ФИЛЬТРЫ -----
+    function clearFilters() {
+        filterCategory.value = 'all';
+        searchInput.value = '';
+        importantFilter.checked = false;
+        sortSelect.value = 'date-desc';
+        dateFrom.value = '';
+        dateTo.value = '';
+        tagFilter.value = '';
+        render();
+        showToast('🧹 Фильтры сброшены', 2000);
+    }
+
+    function setQuickFilter(period) {
+        const today = getToday();
+        dateTo.value = today;
+        if (period === 'today') dateFrom.value = today;
+        else if (period === 'week') {
+            const d = new Date(); d.setDate(d.getDate()-6);
+            dateFrom.value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        } else if (period === 'month') {
+            const d = new Date(); d.setDate(1);
+            dateFrom.value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';
+        }
+        render();
+        showToast(`📅 Период: ${period}`, 2000);
+    }
+
+    // ----- ВАЛЮТА -----
+    function changeCurrency() {
+        currencySymbol = currencySelect.value;
+        saveToStorage();
+        render();
+    }
+
+    // ----- ИНИЦИАЛИЗАЦИЯ -----
+    function init() {
+        loadTheme();
+        loadFromStorage();
+        const today = getToday();
+        dateInput.value = today;
+
+        // Применяем регулярные расходы при загрузке
+        applyRegulars();
+
+        render();
+
+        // События
+        form.addEventListener('submit', addExpense);
+        filterCategory.addEventListener('change', render);
+        searchInput.addEventListener('input', render);
+        sortSelect.addEventListener('change', render);
+        importantFilter.addEventListener('change', render);
+        tagFilter.addEventListener('input', render);
+        dateFrom.addEventListener('change', render);
+        dateTo.addEventListener('change', render);
+        clearFiltersBtn.addEventListener('click', clearFilters);
+        setBudgetBtn.addEventListener('click', setBudget);
+        budgetInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') setBudget(); });
+        exportJsonBtn.addEventListener('click', exportJson);
+        exportCsvBtn.addEventListener('click', exportCsv);
+        importBtn.addEventListener('click', () => importFile.click());
+        importFile.addEventListener('change', (e) => { if (e.target.files.length) { importData(e.target.files[0]); e.target.value = ''; } });
+        clearAllBtn.addEventListener('click', clearAll);
+        quickFilterBtns.forEach(btn => btn.addEventListener('click', function() { setQuickFilter(this.dataset.period); }));
+        themeToggle.addEventListener('click', toggleTheme);
+        currencySelect.addEventListener('change', changeCurrency);
+        addRegularBtn.addEventListener('click', addRegular);
+
+        closeEditModal.addEventListener('click', closeEditModalFn);
+        editModal.addEventListener('click', function(e) { if (e.target === this) closeEditModalFn(); });
+        editForm.addEventListener('submit', saveEdit);
+
+        // Перерисовка тренда при изменении размера окна
+        window.addEventListener('resize', () => { render(); });
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>

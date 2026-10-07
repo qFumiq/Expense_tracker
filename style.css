@@ -1,0 +1,429 @@
+/* ----- RESET & БАЗА ----- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: #f4f6fa;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 30px 20px;
+}
+
+.app {
+    max-width: 1000px;
+    width: 100%;
+}
+
+/* ----- ЗАГОЛОВОК ----- */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a2634;
+    letter-spacing: -0.5px;
+}
+
+.header h1 span {
+    color: #4f7df3;
+}
+
+.total-box {
+    background: #ffffff;
+    padding: 12px 28px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    text-align: right;
+}
+
+.total-box .label {
+    font-size: 13px;
+    color: #7e8c9e;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+.total-box .amount {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a2634;
+}
+
+.total-box .amount.negative {
+    color: #e74c5e;
+}
+
+/* ----- КАРТОЧКА ФОРМЫ ----- */
+.card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 24px 28px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    margin-bottom: 28px;
+    transition: box-shadow 0.2s;
+}
+
+.card:hover {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: flex-end;
+}
+
+.form-group {
+    flex: 1 1 160px;
+    min-width: 130px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #3d4a5a;
+    margin-bottom: 5px;
+    letter-spacing: 0.2px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 15px;
+    background: #fafbfc;
+    transition: border 0.2s, box-shadow 0.2s;
+    outline: none;
+    color: #1a2634;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #4f7df3;
+    box-shadow: 0 0 0 3px rgba(79, 125, 243, 0.15);
+    background: #ffffff;
+}
+
+.form-group input::placeholder {
+    color: #aab4c2;
+}
+
+.btn {
+    padding: 10px 28px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    background: #4f7df3;
+    color: #fff;
+    white-space: nowrap;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn:hover {
+    background: #3b66d9;
+    box-shadow: 0 4px 14px rgba(79, 125, 243, 0.35);
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-danger {
+    background: #e74c5e;
+}
+.btn-danger:hover {
+    background: #d43a4b;
+    box-shadow: 0 4px 14px rgba(231, 76, 94, 0.35);
+}
+
+.btn-outline {
+    background: transparent;
+    color: #4f7df3;
+    border: 1.5px solid #4f7df3;
+}
+.btn-outline:hover {
+    background: #f0f4ff;
+    box-shadow: none;
+}
+
+.btn-sm {
+    padding: 6px 14px;
+    height: 34px;
+    font-size: 13px;
+}
+
+/* ----- ФИЛЬТРЫ ----- */
+.filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.filter-bar .left {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.filter-bar select,
+.filter-bar input {
+    padding: 8px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    background: #fafbfc;
+    outline: none;
+    transition: border 0.2s;
+    color: #1a2634;
+}
+
+.filter-bar select:focus,
+.filter-bar input:focus {
+    border-color: #4f7df3;
+}
+
+.filter-bar .stats {
+    font-size: 14px;
+    color: #5a6a7a;
+    font-weight: 500;
+}
+
+/* ----- СПИСОК РАСХОДОВ ----- */
+.expense-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.expense-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: #fafbfc;
+    border-radius: 14px;
+    border-left: 4px solid #4f7df3;
+    transition: background 0.15s, transform 0.1s;
+    gap: 10px;
+}
+
+.expense-item:hover {
+    background: #f0f4ff;
+}
+
+.expense-item .info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 20px;
+    flex: 1 1 200px;
+}
+
+.expense-item .info .desc {
+    font-weight: 600;
+    font-size: 16px;
+    color: #1a2634;
+}
+
+.expense-item .info .category {
+    font-size: 13px;
+    background: #e8edf5;
+    padding: 3px 12px;
+    border-radius: 30px;
+    color: #3d4a5a;
+    font-weight: 500;
+}
+
+.expense-item .info .date {
+    font-size: 13px;
+    color: #7e8c9e;
+}
+
+.expense-item .amount {
+    font-weight: 700;
+    font-size: 18px;
+    color: #1a2634;
+    white-space: nowrap;
+}
+
+.expense-item .amount.negative {
+    color: #e74c5e;
+}
+
+.expense-item .actions {
+    display: flex;
+    gap: 6px;
+}
+
+.expense-item .actions .btn {
+    height: 32px;
+    padding: 0 14px;
+    font-size: 13px;
+}
+
+/* ----- ПУСТОЕ СОСТОЯНИЕ ----- */
+.empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: #8a9aaa;
+}
+
+.empty-state .icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+.empty-state h3 {
+    font-weight: 600;
+    color: #3d4a5a;
+    margin-bottom: 6px;
+}
+
+/* ----- АДАПТИВ ----- */
+@media (max-width: 640px) {
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .total-box {
+        text-align: center;
+    }
+    .card {
+        padding: 18px 16px;
+    }
+    .form-row {
+        flex-direction: column;
+    }
+    .form-group {
+        flex: 1 1 auto;
+        min-width: unset;
+    }
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filter-bar .left {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .expense-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .expense-item .info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    .expense-item .actions {
+        justify-content: flex-end;
+        margin-top: 6px;
+    }
+}
+
+/* ----- АНИМАЦИЯ ПРИ УДАЛЕНИИ ----- */
+.expense-item.removing {
+    animation: slideOut 0.25s ease forwards;
+}
+
+@keyframes slideOut {
+    0% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+}
+
+/* ----- ДИАГРАММА (простая) ----- */
+.chart-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eef2f7;
+}
+
+.chart-section h3 {
+    font-size: 16px;
+    color: #3d4a5a;
+    margin-bottom: 14px;
+    font-weight: 600;
+}
+
+.chart-bars {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    align-items: flex-end;
+}
+
+.chart-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1 1 60px;
+    min-width: 50px;
+}
+
+.chart-bar {
+    width: 100%;
+    max-width: 44px;
+    height: 8px;
+    background: #4f7df3;
+    border-radius: 6px;
+    transition: height 0.4s ease;
+    min-height: 4px;
+}
+
+.chart-bar-wrap .cat-label {
+    font-size: 11px;
+    color: #5a6a7a;
+    margin-top: 5px;
+    text-align: center;
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.chart-bar-wrap .cat-total {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1a2634;
+    margin-bottom: 3px;
+}
+
+.no-chart {
+    color: #aab4c2;
+    font-size: 14px;
+    padding: 8px 0;
+}
